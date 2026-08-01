@@ -1,0 +1,23 @@
+{
+  "active_list": "Example Watchlist",
+  "lists": {
+    "Example Watchlist": {
+      "description": "Replace this example with the receiving Agent's maintained list.",
+      "sources": [
+        "company_ir"
+      ],
+      "companies": [
+        {
+          "name": "Intel",
+          "company_name_en": "Intel",
+          "code": "INTC",
+          "market": "US",
+          "ir_sources": [
+            "intel_ir_calendar"
+          ]
+        }
+      ]
+    }
+  }
+}
+

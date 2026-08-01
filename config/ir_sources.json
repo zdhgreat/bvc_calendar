@@ -1,0 +1,1049 @@
+{
+  "sources": [
+    {
+      "id": "tencent_ir",
+      "name": "腾讯投资者关系-投资者日历",
+      "company": "腾讯控股",
+      "url": "https://www.tencent.com/zh-cn/investors.html",
+      "type": "ir_calendar",
+      "enabled": true,
+      "note": "投资者日历区域有财报发布日期，路演页面只有历史数据不含未来事件",
+      "supplemental_urls": [
+        "https://www.tencent.com/zh-cn/investors/financial-news.html"
+      ],
+      "coverage_tags": [
+        "news_releases"
+      ]
+    },
+    {
+      "id": "tencent_roadshows",
+      "name": "腾讯投资者关系-路演日历",
+      "company": "腾讯控股",
+      "url": "https://www.tencent.com/zh-cn/investors/roadshows.html",
+      "type": "roadshow",
+      "enabled": false,
+      "note": "仅历史路演记录，不含未来事件，已禁用"
+    },
+    {
+      "id": "intel_ir_calendar",
+      "name": "英特尔投资者关系-IR日历",
+      "company": "英特尔",
+      "url": "https://www.intc.com/news-events/ir-calendar",
+      "type": "ir_calendar",
+      "enabled": true,
+      "selectors": {
+        "event_list": ".ir-calendar, .events-list, .calendar-list, [class*='calendar'], [class*='event']",
+        "event_item": ".event-item, .calendar-item, .event, li, tr, article",
+        "title": ".event-title, .title, h3, h4, h2, .event-name, [class*='title']",
+        "date": ".event-date, .date, time, [class*='date'], [datetime]",
+        "location": ".location, .venue, .event-location",
+        "description": ".description, .event-desc, .summary, [class*='desc']",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY",
+        "DD MMM YYYY"
+      ],
+      "supplemental_urls": [
+        "https://www.intc.com/news-events/press-releases/rss"
+      ],
+      "coverage_tags": [
+        "news_releases"
+      ]
+    },
+    {
+      "id": "skhynix_ir_events",
+      "name": "SK海力士-投资者活动",
+      "company": "SK海力士",
+      "url": "https://www.skhynix.com/ir/UI-FR-IR10",
+      "type": "ir_calendar",
+      "enabled": true,
+      "dynamic": true,
+      "note": "IR Event页面，Nuxt.js动态加载，有活动时显示内容。同时从earnings页面(UI-FR-IR06)验真财报日期",
+      "fallback_url": "https://www.skhynix.com/ir/UI-FR-IR06",
+      "selectors": {
+        "event_list": ".content_wrap, .ir-event-list, [class*='event']",
+        "event_item": ".content_type, .event-item, li",
+        "title": ".tit_type02, h2, h3, .title",
+        "date": ".date, time, [datetime]",
+        "location": ".location",
+        "description": ".txt_type02, .description, dd",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY",
+        "MMM DD, YYYY/ h:mm A"
+      ],
+      "supplemental_urls": [
+        "https://www.skhynix.com/ir/UI-FR-IR07",
+        "https://www.skhynix.com/ir/UI-FR-IR08"
+      ],
+      "coverage_tags": [
+        "presentations_investor_day"
+      ]
+    },
+    {
+      "id": "kioxia_ir_calendar",
+      "name": "铠侠投资者关系-IR日历",
+      "company": "铠侠",
+      "url": "https://www.kioxia-holdings.com/en-jp/ir/calendar.html",
+      "type": "ir_calendar",
+      "enabled": true,
+      "supplemental_urls": [
+        "https://www.kioxia-holdings.com/en-jp/news.html?year=2026&filter1=ir.3"
+      ],
+      "coverage_tags": [
+        "news_releases",
+        "presentations_investor_day"
+      ],
+      "note": "IR calendar + news release fallback；财报预告、Investor Day 等前瞻事件由通用补充源扫描识别。",
+      "selectors": {
+        "event_list": ".cmp-container, .calendar-content, [class*='calendar']",
+        "event_item": "p, .event-item, div",
+        "title": "span.cmp-button__text, .title, p",
+        "date": "p",
+        "location": ".location",
+        "description": "p",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MMMM DD, YYYY",
+        "MMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "nvidia_ir_calendar",
+      "name": "英伟达投资者关系-RSS事件",
+      "company": "英伟达",
+      "url": "https://investor.nvidia.com/rss/Event.aspx?LanguageId=1",
+      "type": "ir_calendar",
+      "enabled": true,
+      "protected": true,
+      "note": "页面有Cloudflare保护，需要Playwright/Selenium或特殊处理",
+      "selectors": {
+        "event_list": ".events-list, .calendar-list, [class*='event'], [class*='calendar']",
+        "event_item": ".event-item, .calendar-item, tr, li",
+        "title": ".event-title, .title, h3, h4, a",
+        "date": ".date, .event-date, time, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ],
+      "crawl_method": "rss"
+    },
+    {
+      "id": "sandisk_ir_events",
+      "name": "闪迪投资者关系-RSS事件",
+      "company": "闪迪",
+      "url": "https://investor.sandisk.com/rss/events.xml",
+      "type": "ir_calendar",
+      "enabled": true,
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], main",
+        "event_item": ".event-item, .event, li, tr, article, [class*='event']",
+        "title": ".event-title, .title, h3, h4, a, td",
+        "date": ".event-date, .date, time, [class*='date'], td",
+        "location": ".location, .venue",
+        "description": ".description, .desc, td",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ],
+      "crawl_method": "rss",
+      "supplemental_urls": [
+        "https://investor.sandisk.com/rss/news-releases.xml"
+      ],
+      "coverage_tags": [
+        "news_releases"
+      ]
+    },
+    {
+      "id": "prosus_ir_calendar",
+      "name": "Prosus投资者关系-事件日历",
+      "company": "Prosus",
+      "url": "https://www.prosus.com/investors/events-news-and-presentations/events-calendar",
+      "type": "ir_calendar",
+      "enabled": true,
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], main",
+        "event_item": "tr, .event-item, .event, li, article",
+        "title": "td.body-large, .event-title, .title, h3, h4, a",
+        "date": "td.body-large, .event-date, .date, time",
+        "location": ".location, .venue",
+        "description": ".description, .desc",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "DD MMM YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ],
+      "coverage_tags": [
+        "presentations_investor_day"
+      ]
+    },
+    {
+      "id": "ubisoft_ir_calendar",
+      "name": "育碧投资者关系",
+      "company": "育碧娱乐",
+      "url": "https://www.ubisoft.com/en-us/company/about-us/investors",
+      "type": "ir_calendar",
+      "enabled": true,
+      "selectors": {
+        "event_list": ".events, .calendar, [class*='event'], main",
+        "event_item": ".event-item, .event, li, article, [class*='event']",
+        "title": ".event-title, .title, h3, h4, a, [class*='title']",
+        "date": ".event-date, .date, time, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "DD MMM YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "samsung_ir_events",
+      "name": "三星电子投资者关系-事件",
+      "company": "三星电子",
+      "url": "https://www.samsung.com/global/ir/ir-events-presentations/events/",
+      "type": "ir_calendar",
+      "enabled": true,
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], main",
+        "event_item": ".event-item, .event, li, article, [class*='event']",
+        "title": ".event-title, .title, h3, h4, a, [class*='title']",
+        "date": ".event-date, .date, time, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ],
+      "coverage_tags": [
+        "presentations_investor_day"
+      ]
+    },
+    {
+      "id": "tsmc_ir",
+      "name": "台积电投资者关系-财务日历与活动",
+      "company": "台积电",
+      "url": "https://investor.tsmc.com/english/financial-calendar",
+      "type": "ir_calendar",
+      "enabled": true,
+      "protected": true,
+      "dynamic": true,
+      "note": "官方 financial calendar 覆盖月营收、业绩会等精确台北时间；PR events 覆盖 investor meetings、technology symposium、OIP ecosystem forum。当前官方域名对命令行请求有 Cloudflare challenge，解析器会显式报错，避免误判为无事件。",
+      "supplemental_urls": [
+        "https://pr.tsmc.com/english/events/investor-meetings",
+        "https://pr.tsmc.com/english/events"
+      ],
+      "coverage_tags": [
+        "earnings_calendar",
+        "monthly_revenue",
+        "presentations_investor_day",
+        "technology_forum"
+      ],
+      "supplemental_scan": "handled_by_primary",
+      "selectors": {
+        "event_list": ".calendar, .event-list, [class*='calendar'], [class*='event'], main",
+        "event_item": ".event, .calendar-item, li, tr, article, [class*='item']",
+        "title": ".title, h2, h3, h4, a, [class*='title']",
+        "date": ".date, time, [datetime], [class*='date']",
+        "description": ".description, .summary, [class*='desc']",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "YYYY.MM.DD",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY",
+        "DD MMM YYYY"
+      ]
+    },
+    {
+      "id": "joyy_ir_events",
+      "name": "欢聚投资者关系-RSS事件",
+      "company": "欢聚",
+      "url": "https://ir.joyy.com/rss/events.xml",
+      "type": "ir_calendar",
+      "enabled": true,
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], main",
+        "event_item": ".event-item, .event, li, tr, article, [class*='event']",
+        "title": ".event-title, .title, h3, h4, a, td",
+        "date": ".event-date, .date, time, [class*='date'], td",
+        "location": ".location, .venue",
+        "description": ".description, .desc, td",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ],
+      "crawl_method": "rss",
+      "supplemental_urls": [
+        "https://ir.joyy.com/rss/news-releases.xml"
+      ],
+      "coverage_tags": [
+        "news_releases"
+      ]
+    },
+    {
+      "id": "vip_ir_calendar",
+      "name": "唯品会投资者关系-RSS事件",
+      "company": "唯品会",
+      "url": "https://ir.vip.com/rss/events.xml",
+      "type": "ir_calendar",
+      "enabled": true,
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], main",
+        "event_item": ".event-item, .event, li, tr, article, [class*='event']",
+        "title": ".event-title, .title, h3, h4, a, td",
+        "date": ".event-date, .date, time, [class*='date'], td",
+        "location": ".location, .venue",
+        "description": ".description, .desc, td",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ],
+      "crawl_method": "rss",
+      "supplemental_urls": [
+        "https://ir.vip.com/rss/news-releases.xml"
+      ],
+      "coverage_tags": [
+        "news_releases"
+      ]
+    },
+    {
+      "id": "huazhu_ir_calendar",
+      "name": "华住投资者关系-RSS事件",
+      "company": "华住集团",
+      "url": "https://ir.hworld.com/rss/events.xml",
+      "type": "ir_calendar",
+      "enabled": true,
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], main",
+        "event_item": ".event-item, .event, li, tr, article, [class*='event']",
+        "title": ".event-title, .title, h3, h4, a, td",
+        "date": ".event-date, .date, time, [class*='date'], td",
+        "location": ".location, .venue",
+        "description": ".description, .desc, td",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ],
+      "crawl_method": "rss",
+      "supplemental_urls": [
+        "https://ir.hworld.com/rss/news-releases.xml"
+      ],
+      "coverage_tags": [
+        "news_releases"
+      ]
+    },
+    {
+      "id": "atour_ir_rss",
+      "name": "亚朵投资者关系-RSS事件",
+      "company": "亚朵",
+      "url": "https://ir.yaduo.com/rss/events.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "RSS feed格式，需要XML解析",
+      "crawl_method": "rss",
+      "supplemental_urls": [
+        "https://ir.yaduo.com/rss/news-releases.xml"
+      ],
+      "coverage_tags": [
+        "news_releases"
+      ]
+    },
+    {
+      "id": "luckin_ir_rss",
+      "name": "瑞幸投资者关系-RSS事件",
+      "company": "瑞幸咖啡",
+      "url": "https://investor.luckincoffee.co/rss/events.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "RSS feed格式，需要XML解析",
+      "crawl_method": "rss",
+      "supplemental_urls": [
+        "https://investor.luckincoffee.co/rss/news-releases.xml"
+      ],
+      "coverage_tags": [
+        "news_releases"
+      ]
+    },
+    {
+      "id": "neworiental_ir_rss",
+      "name": "新东方投资者关系-RSS事件",
+      "company": "新东方",
+      "url": "https://investor.neworiental.org/rss/events.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "RSS feed格式，需要XML解析",
+      "crawl_method": "rss",
+      "supplemental_urls": [
+        "https://investor.neworiental.org/rss/news-releases.xml"
+      ],
+      "coverage_tags": [
+        "news_releases"
+      ]
+    },
+    {
+      "id": "pdd_ir_rss",
+      "name": "拼多多投资者关系-RSS事件",
+      "company": "拼多多",
+      "url": "https://investor.pddholdings.com/rss/events.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "网页被Akamai封锁，改用RSS feed",
+      "crawl_method": "rss",
+      "supplemental_urls": [
+        "https://investor.pddholdings.com/rss/news-releases.xml"
+      ],
+      "coverage_tags": [
+        "news_releases"
+      ]
+    },
+    {
+      "id": "haier_ir_events",
+      "name": "海尔智家投资者关系-事件",
+      "company": "海尔智家",
+      "url": "https://smart-home.haier.com/cn/investor-relations/#news-events",
+      "type": "ir_calendar",
+      "enabled": true,
+      "note": "中文页面，注意中文字体编码",
+      "selectors": {
+        "event_list": ".news-events, .events, [class*='event'], [class*='news'], main",
+        "event_item": ".event-item, .event, li, article, [class*='item']",
+        "title": ".event-title, .title, h3, h4, a, [class*='title']",
+        "date": ".event-date, .date, time, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "YYYY年MM月DD日",
+        "MM-DD-YYYY"
+      ]
+    },
+    {
+      "id": "catl_cninfo",
+      "name": "宁德时代-巨潮资讯公告",
+      "company": "宁德时代",
+      "url": "https://irm.cninfo.com.cn/ircs/company/companyDetail?stockcode=300750&orgId=GD165627",
+      "type": "announcement",
+      "enabled": true,
+      "note": "巨潮资讯平台，可能需要特殊采集方式"
+    },
+    {
+      "id": "staar_ir_calendar",
+      "name": "Staar Surgical投资者关系",
+      "company": "Staar Surgical",
+      "url": "https://investors.staar.com",
+      "type": "ir_calendar",
+      "enabled": true,
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], main",
+        "event_item": ".event-item, .event, li, article, [class*='event']",
+        "title": ".event-title, .title, h3, h4, a, [class*='title']",
+        "date": ".event-date, .date, time, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "micron_ir_calendar",
+      "name": "美光投资者关系",
+      "company": "美光",
+      "url": "https://investors.micron.com",
+      "type": "ir_calendar",
+      "enabled": true,
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], main",
+        "event_item": ".event-item, .event, li, article, [class*='event']",
+        "title": ".event-title, .title, h3, h4, a, [class*='title']",
+        "date": ".event-date, .date, time, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ],
+      "supplemental_urls": [
+        "https://investors.micron.com/events-and-presentations"
+      ],
+      "coverage_tags": [
+        "presentations_investor_day"
+      ]
+    },
+    {
+      "id": "midea_ir_calendar",
+      "name": "美的集团投资者关系",
+      "company": "美的集团",
+      "url": "https://www.midea.com.cn/en/investor-relations",
+      "type": "ir_calendar",
+      "enabled": true,
+      "note": "A+H股，中英文页面",
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], [class*='investor'], main",
+        "event_item": ".event-item, .event, li, article, [class*='item']",
+        "title": ".event-title, .title, h3, h4, a, [class*='title']",
+        "date": ".event-date, .date, time, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "YYYY年MM月DD日",
+        "MM-DD-YYYY"
+      ]
+    },
+    {
+      "id": "gree_ir_calendar",
+      "name": "格力电器投资者关系",
+      "company": "格力电器",
+      "url": "https://www.gree.com.cn/investor",
+      "type": "ir_calendar",
+      "enabled": true,
+      "note": "A股，中文页面",
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], [class*='investor'], main",
+        "event_item": ".event-item, .event, li, article, [class*='item']",
+        "title": ".event-title, .title, h3, h4, a, [class*='title']",
+        "date": ".event-date, .date, time, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "YYYY年MM月DD日",
+        "MM-DD-YYYY"
+      ]
+    },
+    {
+      "id": "trip_com_ir_events",
+      "name": "携程集团投资者关系-RSS事件",
+      "company": "携程集团",
+      "url": "https://investors.trip.com/rss/events.xml?items=15",
+      "type": "rss",
+      "enabled": true,
+      "note": "官方 RSS feed；首页请求易超时。2026-05-27 feed 最新仍为 Q4 2025，尚未发布 Q1 2026 官方事件。",
+      "crawl_method": "rss",
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], main",
+        "event_item": ".event-item, .event, li, article, [class*='event']",
+        "title": ".event-title, .title, h3, h4, a, [class*='title']",
+        "date": ".event-date, .date, time, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ],
+      "supplemental_urls": [
+        "https://investors.trip.com/rss/news-releases.xml?items=15"
+      ],
+      "coverage_tags": [
+        "news_releases"
+      ]
+    },
+    {
+      "id": "trip_com_news_releases",
+      "name": "携程集团投资者关系-新闻稿RSS",
+      "company": "携程集团",
+      "url": "https://investors.trip.com/rss/news-releases.xml?items=15",
+      "type": "rss",
+      "enabled": true,
+      "note": "官方新闻稿RSS；仅识别前瞻性IR事件，如年度股东大会、to report financial results 等，不把已发布业绩结果新闻当作未来日历事件。",
+      "crawl_method": "rss_news_releases",
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ],
+      "coverage_tags": [
+        "news_releases"
+      ]
+    },
+    {
+      "id": "gf_securities_ir_calendar",
+      "name": "广发证券投资者关系",
+      "company": "广发证券",
+      "url": "https://ir.gf.com.cn/en/home/",
+      "type": "ir_calendar",
+      "enabled": true,
+      "note": "Chrome 已确认可访问；官方 IR 信息披露站，未见独立前瞻日历，低优先级兜底。",
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], [class*='investor'], main",
+        "event_item": ".event-item, .event, li, article, [class*='item']",
+        "title": ".event-title, .title, h3, h4, a, [class*='title']",
+        "date": ".event-date, .date, time, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "YYYY年MM月DD日",
+        "MM-DD-YYYY"
+      ]
+    },
+    {
+      "id": "fosun_ir_calendar",
+      "name": "复星国际投资者关系-活动日历",
+      "company": "复星国际",
+      "url": "https://ir.fosun.com/en/investor-relations/ir-calendar/",
+      "type": "ir_calendar",
+      "enabled": true,
+      "note": "Chrome 已确认可访问；官方 IR Event Calendar，当前首屏未见具体前瞻事件列表。",
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], main",
+        "event_item": ".event-item, .event, li, article, tr, [class*='event']",
+        "title": ".event-title, .title, h3, h4, a, td, [class*='title']",
+        "date": ".event-date, .date, time, td, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc, td",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "DD MMM YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "li_ning_ir_calendar",
+      "name": "李宁投资者关系-财务日历",
+      "company": "李宁",
+      "url": "https://ir.lining.com/en/ir/calendar.php",
+      "type": "ir_calendar",
+      "enabled": true,
+      "note": "Chrome 已确认可访问；2026 财务日历含 2026-06-11 Annual General Meeting。",
+      "selectors": {
+        "event_list": ".financial-calendar, .calendar, [class*='calendar'], main",
+        "event_item": ".event-item, .event, li, article, tr, [class*='item']",
+        "title": ".event-title, .title, h3, h4, a, td, [class*='title']",
+        "date": ".event-date, .date, time, td, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc, td",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "DD MMM YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ],
+      "coverage_tags": [
+        "presentations_investor_day"
+      ]
+    },
+    {
+      "id": "ever_sunshine_ir_calendar",
+      "name": "永升服务投资者关系",
+      "company": "永升服务",
+      "url": "https://www.ysservice.com.cn/en/investor-relations/",
+      "type": "ir_calendar",
+      "enabled": false,
+      "note": "Chrome 验证该地址 404，待人工确认永升服务正确 IR/财务日历 URL 后再启用。",
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], [class*='investor'], main",
+        "event_item": ".event-item, .event, li, article, tr, [class*='item']",
+        "title": ".event-title, .title, h3, h4, a, td, [class*='title']",
+        "date": ".event-date, .date, time, td, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc, td",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "DD MMM YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "midea_real_estate_ir_calendar",
+      "name": "美的置业投资者关系",
+      "company": "美的置业",
+      "url": "https://en.mideadc.com/investor-relations/",
+      "type": "ir_calendar",
+      "enabled": false,
+      "note": "Chrome 验证该地址 404，待人工确认美的置业正确 IR/财务日历 URL 后再启用。",
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], [class*='investor'], main",
+        "event_item": ".event-item, .event, li, article, tr, [class*='item']",
+        "title": ".event-title, .title, h3, h4, a, td, [class*='title']",
+        "date": ".event-date, .date, time, td, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc, td",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "DD MMM YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "smic_ir_calendar",
+      "name": "中芯国际投资者关系-财务日历",
+      "company": "中芯国际",
+      "url": "https://www.smics.com/en/site/company_activity",
+      "type": "ir_calendar",
+      "enabled": true,
+      "note": "Chrome 已确认可访问；2026 IR Calendar 含 2026-05-15 SMIC 2026 Q1 Earnings Conference Call。",
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='calendar'], main",
+        "event_item": ".event-item, .event, li, article, tr, [class*='item']",
+        "title": ".event-title, .title, h3, h4, a, td, [class*='title']",
+        "date": ".event-date, .date, time, td, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc, td",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "YYYY年MM月DD日",
+        "DD MMM YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "futu_ir_calendar",
+      "name": "富途控股投资者关系",
+      "company": "富途控股",
+      "url": "https://futuholdings.gcs-web.com/investor-relations/",
+      "type": "ir_calendar",
+      "enabled": true,
+      "note": "Chrome 已确认可访问；首页 Upcoming Events 含 2026-05-28 Futu Holdings Ltd First Quarter 2026 Earnings Conference Call。",
+      "selectors": {
+        "event_list": ".events-list, .calendar, [class*='event'], main",
+        "event_item": ".event-item, .event, li, article, [class*='event']",
+        "title": ".event-title, .title, h3, h4, a, [class*='title']",
+        "date": ".event-date, .date, time, [class*='date']",
+        "location": ".location, .venue",
+        "description": ".description, .desc",
+        "link": "a[href]"
+      },
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ],
+      "supplemental_urls": [
+        "https://futuholdings.gcs-web.com/rss/news-releases.xml"
+      ],
+      "coverage_tags": [
+        "news_releases"
+      ]
+    },
+    {
+      "id": "intel_news_releases",
+      "name": "英特尔投资者关系-新闻稿RSS",
+      "company": "英特尔",
+      "url": "https://www.intc.com/news-events/press-releases/rss",
+      "type": "rss",
+      "enabled": true,
+      "note": "官方新闻稿RSS；仅识别前瞻性IR事件，如AGM、业绩披露预告、Investor Day/Analyst Day、投资者会议公告。",
+      "crawl_method": "rss_news_releases",
+      "coverage_tags": [
+        "news_releases"
+      ],
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "joyy_news_releases",
+      "name": "欢聚投资者关系-新闻稿RSS",
+      "company": "欢聚",
+      "url": "https://ir.joyy.com/rss/news-releases.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "官方新闻稿RSS；仅识别前瞻性IR事件，如AGM、业绩披露预告、Investor Day/Analyst Day、投资者会议公告。",
+      "crawl_method": "rss_news_releases",
+      "coverage_tags": [
+        "news_releases"
+      ],
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "vip_news_releases",
+      "name": "唯品会投资者关系-新闻稿RSS",
+      "company": "唯品会",
+      "url": "https://ir.vip.com/rss/news-releases.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "官方新闻稿RSS；仅识别前瞻性IR事件，如AGM、业绩披露预告、Investor Day/Analyst Day、投资者会议公告。",
+      "crawl_method": "rss_news_releases",
+      "coverage_tags": [
+        "news_releases"
+      ],
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "huazhu_news_releases",
+      "name": "华住集团投资者关系-新闻稿RSS",
+      "company": "华住集团",
+      "url": "https://ir.hworld.com/rss/news-releases.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "官方新闻稿RSS；仅识别前瞻性IR事件，如AGM、业绩披露预告、Investor Day/Analyst Day、投资者会议公告。",
+      "crawl_method": "rss_news_releases",
+      "coverage_tags": [
+        "news_releases"
+      ],
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "atour_news_releases",
+      "name": "亚朵投资者关系-新闻稿RSS",
+      "company": "亚朵",
+      "url": "https://ir.yaduo.com/rss/news-releases.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "官方新闻稿RSS；仅识别前瞻性IR事件，如AGM、业绩披露预告、Investor Day/Analyst Day、投资者会议公告。",
+      "crawl_method": "rss_news_releases",
+      "coverage_tags": [
+        "news_releases"
+      ],
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "luckin_news_releases",
+      "name": "瑞幸咖啡投资者关系-新闻稿RSS",
+      "company": "瑞幸咖啡",
+      "url": "https://investor.luckincoffee.co/rss/news-releases.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "官方新闻稿RSS；仅识别前瞻性IR事件，如AGM、业绩披露预告、Investor Day/Analyst Day、投资者会议公告。",
+      "crawl_method": "rss_news_releases",
+      "coverage_tags": [
+        "news_releases"
+      ],
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "neworiental_news_releases",
+      "name": "新东方投资者关系-新闻稿RSS",
+      "company": "新东方",
+      "url": "https://investor.neworiental.org/rss/news-releases.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "官方新闻稿RSS；仅识别前瞻性IR事件，如AGM、业绩披露预告、Investor Day/Analyst Day、投资者会议公告。",
+      "crawl_method": "rss_news_releases",
+      "coverage_tags": [
+        "news_releases"
+      ],
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "pdd_news_releases",
+      "name": "拼多多投资者关系-新闻稿RSS",
+      "company": "拼多多",
+      "url": "https://investor.pddholdings.com/rss/news-releases.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "官方新闻稿RSS；仅识别前瞻性IR事件，如AGM、业绩披露预告、Investor Day/Analyst Day、投资者会议公告。",
+      "crawl_method": "rss_news_releases",
+      "coverage_tags": [
+        "news_releases"
+      ],
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "sandisk_news_releases",
+      "name": "闪迪投资者关系-新闻稿RSS",
+      "company": "闪迪",
+      "url": "https://investor.sandisk.com/rss/news-releases.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "官方新闻稿RSS；仅识别前瞻性IR事件，如AGM、业绩披露预告、Investor Day/Analyst Day、投资者会议公告。",
+      "crawl_method": "rss_news_releases",
+      "coverage_tags": [
+        "news_releases"
+      ],
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "micron_news_releases",
+      "name": "美光投资者关系-新闻稿RSS",
+      "company": "美光科技",
+      "url": "https://investors.micron.com/rss/news-releases.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "官方新闻稿RSS；仅识别前瞻性IR事件，如AGM、业绩披露预告、Investor Day/Analyst Day、投资者会议公告。",
+      "crawl_method": "rss_news_releases",
+      "coverage_tags": [
+        "news_releases"
+      ],
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    },
+    {
+      "id": "futu_news_releases",
+      "name": "富途控股投资者关系-新闻稿RSS",
+      "company": "富途控股",
+      "url": "https://futuholdings.gcs-web.com/rss/news-releases.xml",
+      "type": "rss",
+      "enabled": true,
+      "note": "官方新闻稿RSS；仅识别前瞻性IR事件，如AGM、业绩披露预告、Investor Day/Analyst Day、投资者会议公告。",
+      "crawl_method": "rss_news_releases",
+      "coverage_tags": [
+        "news_releases"
+      ],
+      "date_formats": [
+        "YYYY-MM-DD",
+        "YYYY/MM/DD",
+        "MM/DD/YYYY",
+        "MMM DD, YYYY",
+        "MMMM DD, YYYY"
+      ]
+    }
+  ],
+  "last_updated": "2026-06-05",
+  "update_notes": "补充多家公司官方新闻稿RSS和presentation/investor day相关路径；新闻稿RSS仅识别前瞻性IR事件，避免把已发布业绩新闻误入未来日历。"
+}

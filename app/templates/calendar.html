@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>财经日历</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-50">
+  <main class="max-w-6xl mx-auto p-6">
+    <header class="mb-6 flex items-baseline justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">财经日历</h1>
+        <p id="subtitle" class="text-sm text-gray-500">加载中…</p>
+      </div>
+    </header>
+
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2">
+        <label class="text-sm text-gray-600">日期:</label>
+        <input id="datePicker" type="date" class="rounded border border-gray-300 px-3 py-1 text-sm" />
+      </div>
+      <div id="viewSwitch" class="flex rounded border border-gray-300 overflow-hidden text-sm">
+        <button data-view="day" class="px-3 py-1 hover:bg-gray-50">日</button>
+        <button data-view="week" class="px-3 py-1 hover:bg-gray-50 border-l border-gray-300">周</button>
+        <button data-view="month" class="px-3 py-1 hover:bg-gray-50 border-l border-gray-300">月</button>
+      </div>
+    </div>
+
+    <div id="tabs" class="mb-4 flex gap-2 border-b"></div>
+    <div id="content"></div>
+  </main>
+
+  <script>
+    function importance(n) {
+      if (!n) return '<span class="text-gray-300">·</span>';
+      const c = Math.min(3, Math.max(0, n));
+      const stars = '★'.repeat(c) + '☆'.repeat(3 - c);
+      const color = c >= 3 ? 'text-red-500' : c === 2 ? 'text-orange-500' : 'text-gray-400';
+      return `<span class="${color} text-xs">${stars}</span>`;
+    }
+    function sourceTag(s) {
+      const c = (s || '').startsWith('akshare') ? 'bg-green-100 text-green-700'
+        : s === 'finnhub' ? 'bg-blue-100 text-blue-700'
+        : 'bg-gray-100 text-gray-600';
+      return `<span class="rounded px-1.5 py-0.5 text-xs ${c}">${s ?? '-'}</span>`;
+    }
+    // ponytail: topic link only when real topic_id (not stub) AND bbsgo base url configured
+    let BBSGO_URL = '';
+    function topicCell(text, row) {
+      const id = row && row.topic_id;
+      if (id && !String(id).startsWith('-') && BBSGO_URL) {
+        return `<a href="${BBSGO_URL}/topic/${id}" target="_blank" rel="noopener"
+            class="text-blue-600 hover:underline" title="查看帖子">${text}</a>`;
+      }
+      const hint = id ? '尚未发布帖子（等待 bbs-go 回填）' : '尚未关联帖子';
+      return `<span class="text-gray-700" title="${hint}">${text}</span>`;
+    }
+    function table(headers, rowsHtml) {
+      return `<div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-50 text-gray-600"><tr>
+            ${headers.map(h => `<th class="px-3 py-2 text-left font-medium">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody class="divide-y divide-gray-100">${rowsHtml}</tbody>
+        </table></div>`;
+    }
+    function empty() {
+      return '<div class="py-12 text-center text-sm text-gray-400">当日无数据（非交易日或源未刷新）</div>';
+    }
+
+    const TABS = [
+      { id: 'economic', label: '宏观经济', render: economicTable },
+      { id: 'earnings', label: '财报', render: earningsTable },
+      { id: 'corporate', label: '公司事件', render: corporateTable },
+      { id: 'ipo', label: 'IPO/新股', render: ipoTable },
+    ];
+
+    function economicTable(rows) {
+      if (!rows.length) return empty();
+      return table(['时间', '国家', '事件', '重要性', '公布', '预期', '前值', '源'], rows.map((r, i) =>
+        `<tr class="hover:bg-gray-50">
+          <td class="px-3 py-2 text-gray-500">${r.event_time ? new Date(r.event_time).toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+          <td class="px-3 py-2">${r.country}</td>
+          <td class="px-3 py-2">${topicCell(r.indicator, r)}</td>
+          <td class="px-3 py-2">${importance(r.importance)}</td>
+          <td class="px-3 py-2 font-medium text-blue-600">${r.actual ?? '-'}</td>
+          <td class="px-3 py-2 text-gray-500">${r.forecast ?? '-'}</td>
+          <td class="px-3 py-2 text-gray-500">${r.previous ?? '-'}</td>
+          <td class="px-3 py-2">${sourceTag(r.source)}</td>
+        </tr>`).join(''));
+    }
+    function earningsTable(rows) {
+      if (!rows.length) return empty();
+      return table(['代码', '交易所', '公司', '报告期', '源'], rows.map(r =>
+        `<tr class="hover:bg-gray-50">
+          <td class="px-3 py-2 font-mono">${r.ticker}</td>
+          <td class="px-3 py-2 text-gray-500">${r.exchange ?? '-'}</td>
+          <td class="px-3 py-2">${topicCell(r.company ?? '-', r)}</td>
+          <td class="px-3 py-2 text-gray-500">${r.period ?? '-'}</td>
+          <td class="px-3 py-2">${sourceTag(r.source)}</td>
+        </tr>`).join(''));
+    }
+    function corporateTable(rows) {
+      if (!rows.length) return empty();
+      return table(['日期', '代码', '类型', '说明', '源'], rows.map(r =>
+        `<tr class="hover:bg-gray-50">
+          <td class="px-3 py-2 text-gray-500">${r.event_date}</td>
+          <td class="px-3 py-2 font-mono">${r.ticker}</td>
+          <td class="px-3 py-2"><span class="rounded bg-purple-100 px-1.5 py-0.5 text-xs text-purple-700">${r.event_type}</span></td>
+          <td class="px-3 py-2 text-gray-700">${topicCell(r.description ?? '-', r)}</td>
+          <td class="px-3 py-2">${sourceTag(r.source)}</td>
+        </tr>`).join(''));
+    }
+    function ipoTable(rows) {
+      if (!rows.length) return empty();
+      return table(['日期', '代码', '公司', '交易所', '价格区间', '状态', '源'], rows.map(r =>
+        `<tr class="hover:bg-gray-50">
+          <td class="px-3 py-2 text-gray-500">${r.event_date}</td>
+          <td class="px-3 py-2 font-mono">${r.ticker ?? '-'}</td>
+          <td class="px-3 py-2">${topicCell(r.company ?? '-', r)}</td>
+          <td class="px-3 py-2 text-gray-500">${r.exchange ?? '-'}</td>
+          <td class="px-3 py-2">${(r.price_low != null || r.price_high != null) ? `${r.price_low ?? '?'} ~ ${r.price_high ?? '?'}` : '-'}</td>
+          <td class="px-3 py-2">${r.status ? `<span class="rounded bg-yellow-100 px-1.5 py-0.5 text-xs text-yellow-700">${r.status}</span>` : ''}</td>
+          <td class="px-3 py-2">${sourceTag(r.source)}</td>
+        </tr>`).join(''));
+    }
+
+    let CURRENT_DATA = { economic: [], earnings: [], corporate: [], ipo: [] };
+    let CURRENT_VIEW = 'day';
+    let CURRENT_RANGE = null;
+    let currentTab = 'economic';
+
+    async function loadData(date, view) {
+      try {
+        const r = await fetch(`/api/calendar?date=${encodeURIComponent(date)}&view=${encodeURIComponent(view)}`);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = await r.json();
+        if (j.view === 'day') {
+          BBSGO_URL = j.bbsgo_url || '';
+          CURRENT_DATA = {
+            economic: j.economic || [],
+            earnings: j.earnings || [],
+            corporate: j.corporate || [],
+            ipo: j.ipo || [],
+          };
+          CURRENT_RANGE = null;
+        } else {
+          BBSGO_URL = j.bbsgo_url || '';
+          // group days into a flat per-category array + keep per-day structure
+          const flat = { economic: [], earnings: [], corporate: [], ipo: [] };
+          for (const [d, day] of Object.entries(j.days || {})) {
+            for (const k of ['economic','earnings','corporate','ipo']) {
+              day[k].forEach(row => { if (!row.event_time && !row.report_date && !row.event_date) row._day = d; });
+              flat[k].push(...day[k]);
+            }
+          }
+          CURRENT_DATA = flat;
+          CURRENT_RANGE = { start: j.start, end: j.end, days: j.days };
+        }
+        CURRENT_VIEW = j.view;
+      } catch (e) {
+        console.error('API fetch failed', e);
+        CURRENT_DATA = { economic: [], earnings: [], corporate: [], ipo: [] };
+        CURRENT_RANGE = null;
+      }
+    }
+
+    function rerender() {
+      const total = CURRENT_DATA.economic.length + CURRENT_DATA.earnings.length
+                  + CURRENT_DATA.corporate.length + CURRENT_DATA.ipo.length;
+      const subtitle = CURRENT_RANGE
+        ? `${CURRENT_RANGE.start} ~ ${CURRENT_RANGE.end} · 共 ${total} 条`
+        : `共 ${total} 条`;
+      document.getElementById('subtitle').textContent = subtitle;
+
+      const tabsEl = document.getElementById('tabs');
+      tabsEl.innerHTML = TABS.map(t => {
+        const count = CURRENT_DATA[t.id].length;
+        const active = currentTab === t.id;
+        return `<button data-tab="${t.id}" class="px-4 py-2 text-sm font-medium ${active ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}">${t.label} (${count})</button>`;
+      }).join('');
+      tabsEl.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+        currentTab = b.dataset.tab;
+        rerender();
+      }));
+
+      if (CURRENT_VIEW === 'day' || !CURRENT_RANGE) {
+        const tab = TABS.find(t => t.id === currentTab);
+        document.getElementById('content').innerHTML = tab.render(CURRENT_DATA[currentTab]);
+      } else {
+        document.getElementById('content').innerHTML = renderGrouped(currentTab);
+      }
+    }
+
+    function renderGrouped(tabId) {
+      const render = TABS.find(t => t.id === tabId).render;
+      const sections = [];
+      for (const [d, day] of Object.entries(CURRENT_RANGE.days)) {
+        const rows = day[tabId];
+        const weekday = ['日','一','二','三','四','五','六'][new Date(d + 'T00:00:00').getDay()];
+        const head = `<div class="mt-6 mb-2 flex items-baseline gap-2">
+          <h3 class="text-sm font-semibold text-gray-700">${d} <span class="text-gray-400 font-normal">周${weekday}</span></h3>
+          <span class="text-xs text-gray-400">${rows.length} 条</span>
+        </div>`;
+        sections.push(head + (rows.length ? render(rows) : empty()));
+      }
+      return sections.join('') || empty();
+    }
+
+    function setViewButtons() {
+      document.querySelectorAll('#viewSwitch button').forEach(b => {
+        const active = b.dataset.view === CURRENT_VIEW;
+        b.className = active
+          ? 'px-3 py-1 bg-blue-600 text-white'
+          : 'px-3 py-1 hover:bg-gray-50 border-l border-gray-300 first:border-l-0';
+      });
+    }
+
+    const picker = document.getElementById('datePicker');
+    // ponytail: default to today in Asia/Shanghai
+    const now = new Date();
+    const shanghaiDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+    picker.value = shanghaiDate.toISOString().slice(0, 10);
+    picker.addEventListener('change', async () => {
+      await loadData(picker.value, CURRENT_VIEW);
+      setViewButtons();
+      rerender();
+    });
+    document.querySelectorAll('#viewSwitch button').forEach(b => b.addEventListener('click', async () => {
+      CURRENT_VIEW = b.dataset.view;
+      await loadData(picker.value, CURRENT_VIEW);
+      setViewButtons();
+      rerender();
+    }));
+    loadData(picker.value, CURRENT_VIEW).then(() => { setViewButtons(); rerender(); });
+  </script>
+</body>
+</html>
