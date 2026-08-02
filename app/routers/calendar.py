@@ -1,155 +1,64 @@
-"""Calendar page + JSON API."""
+"""Read-only data interface (JSON) for bbs-go / agents.
+
+No HTML, no pages — pure event feed. A consumer (bbs-go, or an agent driving
+the portal-push skill) pulls /api/feed and /api/event and renders/posts with
+its own logic. financial-calendar never calls bbs-go.
+"""
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, HTTPException, Request
 
 from app.db import query_all
+from app.render import render_post
 
-
-def _bbsgo_public_url() -> str:
-    """Public bbs-go URL for building topic links. Empty if not deployed."""
-    return (os.environ.get("BBSGO_PUBLIC_URL")
-            or os.environ.get("BBSGO_BASE_URL", "")).strip().rstrip("/")
 
 router = APIRouter()
 
-
-@router.get("/api/calendar")
-def calendar_api(date: str | None = None, view: str = "day") -> dict:
-    """Return events for a day / week / month. Defaults to today (Asia/Shanghai).
-
-    view=day   → single date, flat response (backward compatible)
-    view=week  → Monday..Sunday of the week containing `date`
-    view=month → calendar month (1st to next 1st) containing `date`
-    """
-    target = _parse_date(date)
-    view = (view or "day").lower()
-    if view not in ("day", "week", "month"):
-        view = "day"
-
-    start, end = _range_for(target, view)
-
-    economic = query_all(
-        "SELECT e.event_time, e.country, e.indicator, e.importance, e.actual, e.forecast, e.previous, e.source, "
-        "ctm.topic_id AS topic_id "
-        "FROM economic_events e "
-        "LEFT JOIN calendar_topic_map ctm ON ctm.kind='economic' AND ctm.source_id=e.source_id "
-        "WHERE e.event_time >= %s AND e.event_time < %s "
-        "ORDER BY e.event_time",
-        (start, end),
-    )
-    earnings = query_all(
-        "SELECT e.report_date, e.ticker, e.exchange, e.company, e.period, e.source, "
-        "ctm.topic_id AS topic_id "
-        "FROM earnings_calendar e "
-        "LEFT JOIN calendar_topic_map ctm ON ctm.kind='earnings' AND ctm.source_id=e.source_id "
-        "WHERE e.report_date >= %s AND e.report_date < %s ORDER BY e.report_date, e.ticker",
-        (start.isoformat(), end.isoformat()),
-    )
-    corporate = query_all(
-        "SELECT e.event_date, e.ticker, e.event_type, e.description, e.source, "
-        "ctm.topic_id AS topic_id "
-        "FROM corporate_events e "
-        "LEFT JOIN calendar_topic_map ctm ON ctm.kind='corporate' AND ctm.source_id=e.source_id "
-        "WHERE e.event_date >= %s AND e.event_date < %s ORDER BY e.event_date, e.event_type, e.ticker",
-        (start.isoformat(), end.isoformat()),
-    )
-    ipo = query_all(
-        "SELECT e.event_date, e.ticker, e.company, e.exchange, e.price_low, e.price_high, e.status, e.source, "
-        "ctm.topic_id AS topic_id "
-        "FROM ipo_calendar e "
-        "LEFT JOIN calendar_topic_map ctm ON ctm.kind='ipo' AND ctm.source_id=e.source_id "
-        "WHERE e.event_date >= %s AND e.event_date < %s ORDER BY e.event_date, e.company",
-        (start.isoformat(), end.isoformat()),
-    )
-
-    bbsgo_url = _bbsgo_public_url()
-
-    if view == "day":
-        return {
-            "view": "day",
-            "date": target.isoformat(),
-            "bbsgo_url": bbsgo_url,
-            "economic": [_serialize_row(r) for r in economic],
-            "earnings": [_serialize_row(r) for r in earnings],
-            "corporate": [_serialize_row(r) for r in corporate],
-            "ipo": [_serialize_row(r) for r in ipo],
-        }
-
-    # week / month → group by date
-    days: dict[str, dict] = {}
-    for r in economic:
-        d = _date_key(r.get("event_time"))
-        days.setdefault(d, _empty_day())
-        days[d]["economic"].append(_serialize_row(r))
-    for r in earnings:
-        d = _date_key(r.get("report_date"))
-        days.setdefault(d, _empty_day())
-        days[d]["earnings"].append(_serialize_row(r))
-    for r in corporate:
-        d = _date_key(r.get("event_date"))
-        days.setdefault(d, _empty_day())
-        days[d]["corporate"].append(_serialize_row(r))
-    for r in ipo:
-        d = _date_key(r.get("event_date"))
-        days.setdefault(d, _empty_day())
-        days[d]["ipo"].append(_serialize_row(r))
-
-    # fill empty days so the timeline shows gaps
-    cur = start
-    while cur < end:
-        days.setdefault(cur.date().isoformat(), _empty_day())
-        cur += timedelta(days=1)
-
-    return {
-        "view": view,
-        "start": start.date().isoformat(),
-        "end": end.date().isoformat(),
-        "bbsgo_url": bbsgo_url,
-        "days": {k: days[k] for k in sorted(days)},
-    }
+# Per-kind query shape shared by both endpoints. date_col: column used for
+# date_from/date_to filtering. fields always carry id + source_id (stable
+# identity for consumer dedup — bbs-go topic creation has no idempotency key)
+# + fetched_at (incremental-sync key) + kind-specific fields.
+_KIND_SPEC = {
+    "economic": {
+        "table": "economic_events",
+        "date_col": "event_time",  # timestamptz
+        "fields": ["id", "source_id", "fetched_at", "event_time", "country",
+                   "indicator", "importance", "actual", "forecast", "previous", "source"],
+    },
+    "earnings": {
+        "table": "earnings_calendar",
+        "date_col": "report_date",  # date
+        "fields": ["id", "source_id", "fetched_at", "report_date", "ticker",
+                   "exchange", "company", "period", "source"],
+    },
+    "corporate": {
+        "table": "corporate_events",
+        "date_col": "event_date",  # date
+        "fields": ["id", "source_id", "fetched_at", "event_date", "ticker",
+                   "event_type", "title", "company", "description", "event_time",
+                   "timezone", "source_url", "source"],
+    },
+    "ipo": {
+        "table": "ipo_calendar",
+        "date_col": "event_date",  # date
+        "fields": ["id", "source_id", "fetched_at", "event_date", "ticker",
+                   "company", "exchange", "price_low", "price_high", "status", "source"],
+    },
+}
 
 
-def _range_for(target: datetime, view: str) -> tuple[datetime, datetime]:
-    if view == "week":
-        # Monday=0 .. Sunday=6
-        start = target - timedelta(days=target.weekday())
-    elif view == "month":
-        start = target.replace(day=1)
-    else:
-        start = target
-    end = start + timedelta(days=1) if view == "day" else (
-        start + timedelta(days=7) if view == "week" else
-        (start.replace(month=start.month + 1) if start.month < 12 else start.replace(year=start.year + 1, month=1))
-    )
-    return start, end
-
-
-def _date_key(v) -> str | None:
-    if v is None:
-        return None
-    if isinstance(v, datetime):
-        return v.date().isoformat()
-    if hasattr(v, "isoformat"):
-        return v.isoformat()[:10]
-    return str(v)[:10]
-
-
-def _empty_day() -> dict:
-    return {"economic": [], "earnings": [], "corporate": [], "ipo": []}
-
-
-def _parse_date(date: str | None) -> datetime:
-    if not date:
-        # ponytail: hardcode Asia/Shanghai — only place this app targets.
-        # If reused in another tz, replace with timezone.from system.
-        from datetime import timezone
-        return datetime.now(timezone(timedelta(hours=8))).replace(hour=0, minute=0, second=0, microsecond=0)
-    return datetime.fromisoformat(date)
+def _require_feed_token(request: Request) -> None:
+    """Optional shared-secret guard. Off by default; set FEED_TOKEN to require
+    ?token= or X-Feed-Token — a trust boundary consumers cross over a network."""
+    expected = os.environ.get("FEED_TOKEN", "").strip()
+    if not expected:
+        return
+    got = request.query_params.get("token") or request.headers.get("x-feed-token", "")
+    if got != expected:
+        raise HTTPException(status_code=401, detail="invalid feed token")
 
 
 def _serialize_row(row: dict) -> dict:
@@ -165,97 +74,83 @@ def _serialize_row(row: dict) -> dict:
     return out
 
 
-# ──────────────────────────────────────────────────────────────────
-# /event/{kind}/{id} — single-event page embedded in bbs-go topic iframes
-# ponytail: standalone minimal HTML (no Tailwind CDN) so iframe loads fast
-# ──────────────────────────────────────────────────────────────────
-
-_EVENT_TABLE = {
-    "economic": "economic_events",
-    "earnings": "earnings_calendar",
-    "corporate": "corporate_events",
-    "ipo": "ipo_calendar",
-}
+def _parse_date(s: str) -> datetime:
+    return datetime.fromisoformat(s)
 
 
-@router.get("/event/{kind}/{event_id}", response_class=HTMLResponse)
-def event_detail(kind: str, event_id: int) -> HTMLResponse:
-    if kind not in _EVENT_TABLE:
-        return HTMLResponse("unknown kind", status_code=404)
-    rows = query_all(f"SELECT * FROM {_EVENT_TABLE[kind]} WHERE id = %s", (event_id,))
+def _parse_dt(s: str) -> datetime:
+    """Parse an ISO-8601 timestamp (handles trailing Z)."""
+    return datetime.fromisoformat(s.strip().replace("Z", "+00:00"))
+
+
+def _feed_where(spec: dict, since: datetime | None,
+                date_from: datetime | None, date_to: datetime | None) -> tuple[str, list]:
+    clauses, params = [], []
+    if since is not None:
+        clauses.append("fetched_at >= %s")
+        params.append(since)
+    dc = spec["date_col"]
+    if date_from is not None:
+        clauses.append(f"{dc} >= %s")
+        params.append(date_from)
+    if date_to is not None:
+        clauses.append(f"{dc} <= %s")
+        params.append(date_to)
+    return ("WHERE " + " AND ".join(clauses)) if clauses else "", params
+
+
+@router.get("/api/feed")
+def feed_api(request: Request, since: str | None = None, kind: str | None = None,
+             date_from: str | None = None, date_to: str | None = None) -> dict:
+    """Read-only event feed.
+
+    Query params (all optional):
+      since      ISO-8601 timestamp → only rows with fetched_at >= since.
+                 Consumer stores its last poll time and passes it here for
+                 incremental sync. fetched_at bumps on every re-UPSERT, so a
+                 merely re-touched row reappears; dedup by (kind, source_id).
+      kind       one of economic/earnings/corporate/ipo; omit for all four.
+      date_from  YYYY-MM-DD → filter on the event date (inclusive).
+      date_to    YYYY-MM-DD → filter on the event date (inclusive).
+
+    Returns one array per kind; each event carries id + source_id + fetched_at
+    plus its kind-specific fields, and a `post` object
+    ({title, content_md, category, tags}) ready to feed the portal-push skill.
+    """
+    _require_feed_token(request)
+    kinds = [kind] if kind in _KIND_SPEC else list(_KIND_SPEC)
+    since_dt = _parse_dt(since) if since else None
+    df = _parse_date(date_from) if date_from else None
+    dt = _parse_date(date_to) if date_to else None
+
+    out: dict[str, list] = {}
+    for k in kinds:
+        spec = _KIND_SPEC[k]
+        where, params = _feed_where(spec, since_dt, df, dt)
+        sql = (f"SELECT {', '.join(spec['fields'])} FROM {spec['table']} {where} "
+               f"ORDER BY {spec['date_col']}")
+        rows = []
+        for r in query_all(sql, params):
+            s = _serialize_row(r)
+            s["post"] = render_post(k, s)
+            rows.append(s)
+        out[k] = rows
+    return {"generated_at": datetime.now(timezone.utc).isoformat(),
+            "since": since, "date_from": date_from, "date_to": date_to, **out}
+
+
+@router.get("/api/event/{kind}/{event_id}")
+def event_json(kind: str, event_id: int, request: Request) -> dict:
+    """Single event as JSON, with a `post` object ready for the portal-push skill."""
+    _require_feed_token(request)
+    spec = _KIND_SPEC.get(kind)
+    if not spec:
+        raise HTTPException(status_code=404, detail="unknown kind")
+    rows = query_all(
+        f"SELECT {', '.join(spec['fields'])} FROM {spec['table']} WHERE id = %s",
+        (event_id,))
     if not rows:
-        return HTMLResponse("event not found", status_code=404)
-    r = _serialize_row(rows[0])
-    title, rows_html = _event_detail_blocks(kind, r)
-    return HTMLResponse(_EVENT_PAGE_TEMPLATE.format(
-        title=title.replace("<", "&lt;"),
-        rows="\n".join(rows_html),
-    ))
-
-
-def _event_detail_blocks(kind: str, r: dict) -> tuple[str, list[str]]:
-    """Return (title, html rows) for one event. Per-kind field shape."""
-    if kind == "economic":
-        title = f"[{r.get('country','')}] {r.get('indicator','')}"
-        fields = [("时间", _fmt_time(r.get("event_time"))),
-                  ("国家", r.get("country")),
-                  ("重要性", "★" * (r.get("importance") or 0)),
-                  ("前值", r.get("previous")), ("预测", r.get("forecast")),
-                  ("实际", r.get("actual")), ("来源", r.get("source"))]
-    elif kind == "earnings":
-        title = f"[财报] {r.get('company') or r.get('ticker','')}"
-        fields = [("代码", f"{r.get('ticker','')} {r.get('exchange') or ''}"),
-                  ("公司", r.get("company")), ("报告期", r.get("period")),
-                  ("发布日", r.get("report_date")), ("来源", r.get("source"))]
-    elif kind == "ipo":
-        title = f"[IPO] {r.get('company') or r.get('ticker','')}"
-        fields = [("代码", f"{r.get('ticker','')} {r.get('exchange') or ''}"),
-                  ("公司", r.get("company")), ("日期", r.get("event_date")),
-                  ("价格区间", _fmt_range(r.get("price_low"), r.get("price_high"))),
-                  ("状态", r.get("status")), ("来源", r.get("source"))]
-    else:  # corporate
-        title = f"[{r.get('event_type','事件')}] {r.get('title') or (r.get('description','')[:40]) or r.get('company','')}"
-        fields = [("公司", f"{r.get('company','')} {r.get('ticker') or ''}"),
-                  ("日期", r.get("event_date")), ("类型", r.get("event_type")),
-                  ("时间", _fmt_time(r.get("event_time"))),
-                  ("说明", r.get("description"))]
-        if r.get("source_url"):
-            fields.append(("链接", f'<a href="{r["source_url"]}" target="_blank">来源</a>'))
-        fields.append(("来源", r.get("source")))
-    rows_html = [f'<tr><th>{k}</th><td>{v if v not in (None,"") else "-"}</td></tr>'
-                 for k, v in fields]
-    return title, rows_html
-
-
-def _fmt_time(v) -> str:
-    if v is None:
-        return "-"
-    try:
-        return str(v)[:19].replace("T", " ")
-    except Exception:
-        return str(v)
-
-
-def _fmt_range(lo, hi) -> str:
-    if lo is None and hi is None:
-        return "-"
-    return f"{lo if lo is not None else '?'} ~ {hi if hi is not None else '?'}"
-
-
-_EVENT_PAGE_TEMPLATE = """<!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{title}</title>
-<style>
-  body {{ font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-         margin: 0; padding: 16px; background: #fff; color: #1f2937; }}
-  h1 {{ font-size: 1.05rem; margin: 0 0 12px; line-height: 1.4; }}
-  table {{ border-collapse: collapse; width: 100%; font-size: 0.875rem; }}
-  th {{ text-align: left; width: 5em; color: #6b7280; font-weight: 500;
-       padding: 6px 8px 6px 0; vertical-align: top; }}
-  td {{ padding: 6px 0; }}
-  a {{ color: #2563eb; }}
-</style></head><body>
-<h1>{title}</h1>
-<table>{rows}</table>
-</body></html>"""
+        raise HTTPException(status_code=404, detail="event not found")
+    s = _serialize_row(rows[0])
+    s["post"] = render_post(kind, s)
+    return {"kind": kind, **s}

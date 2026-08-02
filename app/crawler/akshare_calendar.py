@@ -206,6 +206,25 @@ def fetch_shareholder_meetings(target_date: datetime) -> list[dict]:
     return out
 
 
+def _cn_amount(v) -> str:
+    """Format a numeric amount with 万/亿 units; fall back to raw on error.
+
+    akshare returns share counts / market values as raw floats (e.g.
+    610724628.0, 5629560454.7699995) whose str() leaks '.0' and float drift.
+    """
+    try:
+        n = float(v)
+    except (TypeError, ValueError):
+        return str(v) if v is not None else "-"
+    if n != n or n == 0:  # NaN or zero
+        return "0"
+    if abs(n) >= 1e8:
+        return f"{n / 1e8:.2f}亿"
+    if abs(n) >= 1e4:
+        return f"{n / 1e4:.2f}万"
+    return f"{n:.0f}"
+
+
 def fetch_unlock_summary(start: datetime, end: datetime) -> list[dict]:
     """Daily 限售解禁 aggregate; one synthetic 'ticker' = AGG-CN per day."""
     try:
@@ -230,9 +249,9 @@ def fetch_unlock_summary(start: datetime, end: datetime) -> list[dict]:
         except ValueError:
             continue
         count = _safe_str(r.get("当日解禁股票家数"))
-        shares = _safe_str(r.get("解禁数量"))
-        value = _safe_str(r.get("实际解禁市值"))
-        desc = f"全市场解禁: {count}家, {shares}股, 市值{value}元"
+        shares = _cn_amount(r.get("解禁数量"))
+        value = _cn_amount(r.get("实际解禁市值"))
+        desc = f"全市场解禁:{count}家,解禁{shares}股,市值{value}元"
         out.append({
             "event_date": d_iso,
             "ticker": "AGG-CN",

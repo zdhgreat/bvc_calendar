@@ -3,8 +3,9 @@
 Pulls CN (akshare) + EN (finnhub) calendar data and UPSERTs into PostgreSQL.
 Idempotent via UNIQUE(source, source_id).
 
-For every *newly inserted* row, calls bbs_integration.ensure_topic so an
-associated bbs-go topic gets created (when bbs-go is wired up).
+bbs-go integration is pull-only: bbs reads the read-only JSON feed
+(app.routers.calendar /api/feed, /api/event) and creates its own topics.
+This runner no longer pushes or knows about bbs-go.
 
 Usage:
     python -m app.crawler.runner                 # today
@@ -24,7 +25,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from app.crawler import akshare_calendar, finnhub_calendar, ir_calendar
 from app.db import get_conn
-from app.bbs_integration import ensure_topic
 
 
 TABLE_COLUMNS = {
@@ -38,35 +38,22 @@ TABLE_COLUMNS = {
                      "price_low", "price_high", "status", "source", "source_id"],
 }
 
-# kind for calendar_topic_map: 1:1 with table name minus the suffix
-TABLE_KIND = {
-    "economic_events": "economic",
-    "earnings_calendar": "earnings",
-    "corporate_events": "corporate",
-    "ipo_calendar": "ipo",
-}
 
-
-def _upsert(cur, table: str, rows: list[dict]) -> list[dict]:
-    """UPSERT rows. Return list of {id, source_id} for rows that were NEWLY inserted."""
+def _upsert(cur, table: str, rows: list[dict]) -> None:
+    """UPSERT rows into `table`. Idempotent via UNIQUE(source, source_id)."""
     if not rows:
-        return []
+        return
     cols = TABLE_COLUMNS[table]
-    # ponytail: xmax = 0 means the row was inserted (not updated) by this statement
     sql = f"""
         INSERT INTO {table} ({", ".join(cols)}, fetched_at)
         VALUES %s
         ON CONFLICT (source, source_id) DO UPDATE
         SET fetched_at = NOW(),
             {", ".join(f"{c}=EXCLUDED.{c}" for c in cols if c not in ('source','source_id'))}
-        RETURNING id, source_id, (xmax = 0) AS inserted
     """
-    values = []
-    for r in rows:
-        values.append([r.get(c) for c in cols] + [datetime.now(timezone.utc)])
+    values = [[r.get(c) for c in cols] + [datetime.now(timezone.utc)] for r in rows]
     template = f"({', '.join(['%s'] * (len(cols) + 1))})"
     psycopg2.extras.execute_values(cur, sql, values, template=template)
-    return [{"id": r[0], "source_id": r[1]} for r in cur.fetchall() if r[2]]
 
 
 def run(target_date: datetime) -> dict[str, int]:
@@ -92,28 +79,16 @@ def run(target_date: datetime) -> dict[str, int]:
         merged[tbl] = cn.get(tbl, []) + en.get(tbl, [])
 
     counts: dict[str, int] = {}
-    new_rows: dict[str, list[dict]] = {}
     conn = _connect_compat()
     try:
         with conn:
             with conn.cursor() as cur:
                 for tbl, rows in merged.items():
-                    new_rows[tbl] = _upsert(cur, tbl, rows)
+                    _upsert(cur, tbl, rows)
                     counts[tbl] = len(rows)
-                    print(f"  {tbl}: +{len(rows)} rows ({len(new_rows[tbl])} new)")
+                    print(f"  {tbl}: +{len(rows)} rows")
     finally:
         conn.close()
-
-    # bbs-go integration: only for genuinely new events
-    for tbl, news in new_rows.items():
-        kind = TABLE_KIND[tbl]
-        for row in news:
-            try:
-                ensure_topic(kind=kind, source_id=row["source_id"],
-                             table=tbl, event_id=row["id"])
-            except Exception as e:
-                print(f"[ensure_topic] {kind}/{row['source_id']} failed: {e}",
-                      file=sys.stderr)
     return counts
 
 

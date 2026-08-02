@@ -1,30 +1,50 @@
-"""Self-check: ensure_topic records map only once, returns existing on re-call.
+"""Self-check for the data feed (pull model).
 
-Doesn't require bbs-go. Uses a temp SQLite? No — runner is PG-coupled.
-Skip if PG not available; this is a smoke test, not CI.
+DB-free: validates the per-kind field map and the WHERE-clause builder that
+/api/feed and /api/event rely on. Does not exercise the network layer.
 """
 from __future__ import annotations
 
-import os
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
-import pytest
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.routers.calendar import _KIND_SPEC, _feed_where, _parse_dt
 
 
-@pytest.mark.skipif(
-    not os.environ.get("POSTGRES_DB"),
-    reason="needs PG (set POSTGRES_* env to run)",
-)
-def test_ensure_topic_records_once():
-    # import lazily so the module's load_dotenv() doesn't crash collection on missing deps
-    from app.bbs_integration import ensure_topic, _lookup_map
+def test_kind_spec_has_identity_and_sync_keys():
+    """Every kind must expose id + source_id (bbs dedup) and fetched_at (since)."""
+    for kind, spec in _KIND_SPEC.items():
+        assert "id" in spec["fields"], f"{kind} missing id"
+        assert "source_id" in spec["fields"], f"{kind} missing source_id"
+        assert "fetched_at" in spec["fields"], f"{kind} missing fetched_at"
+        assert spec["date_col"] in spec["fields"], f"{kind} date_col not in fields"
 
-    kind = "test"
-    sid = f"sid-{os.getpid()}"
-    # bbs-go not configured → returns -event_id (stub)
-    t1 = ensure_topic(kind=kind, source_id=sid, table="economic_events", event_id=999999)
-    assert t1 is not None
-    # second call returns the same id via map lookup, no duplicate insert
-    t2 = ensure_topic(kind=kind, source_id=sid, table="economic_events", event_id=999999)
-    assert t2 == t1
-    assert _lookup_map(kind, sid) == t1
+
+def test_feed_where_clauses():
+    spec = _KIND_SPEC["economic"]
+    since = _parse_dt("2026-08-01T00:00:00Z")
+    df = datetime(2026, 8, 1)
+    dt = datetime(2026, 8, 31)
+
+    where, params = _feed_where(spec, since, df, dt)
+    assert where.count("%s") == 3
+    assert "fetched_at" in where and "event_time" in where
+    assert params == [since, df, dt]
+
+    where_none, params_none = _feed_where(spec, None, None, None)
+    assert where_none == "" and params_none == []
+
+
+def test_parse_dt_handles_z_suffix():
+    assert _parse_dt("2026-08-01T00:00:00Z").tzinfo is not None
+    assert _parse_dt("2026-08-01T00:00:00+08:00").utcoffset() is not None
+
+
+if __name__ == "__main__":
+    test_kind_spec_has_identity_and_sync_keys()
+    test_feed_where_clauses()
+    test_parse_dt_handles_z_suffix()
+    print("ok — feed shape + where builder verified")
