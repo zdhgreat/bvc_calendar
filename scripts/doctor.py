@@ -108,8 +108,7 @@ def main() -> int:
     print("Optional:")
     check_optional_env("FINNHUB_API_KEY", "EN calendar data will be skipped")
     check_optional_env("CHROME_CDP_URL", "anti-bot IR sites will fail to protected-source")
-    check_optional_env("BBSGO_BASE_URL", "ensure_topic will stay as stub")
-    check_optional_env("BBSGO_API_TOKEN", "ensure_topic will stay as stub")
+    check_optional_env("FEED_TOKEN", "data feed (/api/feed, /api/event) is open")
     return 0 if all(results) else 1
 
 

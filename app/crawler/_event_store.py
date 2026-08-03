@@ -307,7 +307,7 @@ def load_events() -> dict:
     """Read all corporate_events back as the zip's canonical dict shape.
 
     Used by the zip's query.py / calendar_notify.list_events — kept for
-    diagnostic parity. The FastAPI /api/calendar endpoint reads via
+    diagnostic parity. The data interface (/api/feed, /api/event) reads via
     routers/calendar.py directly, not through this.
     """
     sql = """
