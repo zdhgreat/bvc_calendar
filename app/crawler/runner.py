@@ -44,6 +44,15 @@ def _upsert(cur, table: str, rows: list[dict]) -> None:
     if not rows:
         return
     cols = TABLE_COLUMNS[table]
+
+    # ponytail: dedupe within the same batch to avoid PostgreSQL cardinality violation
+    # when two crawlers propose the same (source, source_id) in one INSERT.
+    seen: dict[tuple[str | None, str | None], dict] = {}
+    for r in rows:
+        key = (r.get("source"), r.get("source_id"))
+        seen[key] = r
+    deduped = list(seen.values())
+
     sql = f"""
         INSERT INTO {table} ({", ".join(cols)}, fetched_at)
         VALUES %s
@@ -51,7 +60,7 @@ def _upsert(cur, table: str, rows: list[dict]) -> None:
         SET fetched_at = NOW(),
             {", ".join(f"{c}=EXCLUDED.{c}" for c in cols if c not in ('source','source_id'))}
     """
-    values = [[r.get(c) for c in cols] + [datetime.now(timezone.utc)] for r in rows]
+    values = [[r.get(c) for c in cols] + [datetime.now(timezone.utc)] for r in deduped]
     template = f"({', '.join(['%s'] * (len(cols) + 1))})"
     psycopg2.extras.execute_values(cur, sql, values, template=template)
 
