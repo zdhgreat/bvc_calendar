@@ -23,7 +23,7 @@ import psycopg2.extras
 # ponytail: ensure local imports work regardless of CWD
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from app.crawler import akshare_calendar, finnhub_calendar, ir_calendar
+from app.crawler import akshare_calendar, finnhub_calendar, ir_calendar, jin10_calendar
 from app.db import get_conn
 
 
@@ -69,12 +69,26 @@ def run(target_date: datetime) -> dict[str, int]:
     """Run all sources, UPSERT, return {table: rows_affected}."""
     print(f"[calendar.runner] target_date={target_date.date()}")
 
-    cn = akshare_calendar.fetch_all(target_date)
+    # ponytail(2026-08-20 用户决定): 暂时停用 akshare(百度宏观被风控) 和 finnhub(economic 403)，
+    # 宏观/财报改由金十(jin10) 覆盖；watchlist 管线(ir_calendar) 保持不变。
+    # 注意代价: 停用期间没有全市场A股财报日历/解禁/IPO排队数据。重新启用=取消下面两行注释。
+    # cn = akshare_calendar.fetch_all(target_date)
+    # try:
+    #     en = finnhub_calendar.fetch_all(target_date)
+    # except RuntimeError as e:
+    #     print(f"[calendar.runner] finnhub skipped: {e}", file=sys.stderr)
+    #     en = {t: [] for t in TABLE_COLUMNS}
+    cn = {t: [] for t in TABLE_COLUMNS}
+    en = {t: [] for t in TABLE_COLUMNS}
+
+    # jin10 (金十) CN macro/futures/earnings via CDP+WebSocket — needs Chrome on CHROME_CDP_URL.
+    # RuntimeError (fetch broken) is caught so a jin10 outage doesn't block other sources;
+    # the module itself raises on zero-rows so breakage is visible in logs.
     try:
-        en = finnhub_calendar.fetch_all(target_date)
-    except RuntimeError as e:
-        print(f"[calendar.runner] finnhub skipped: {e}", file=sys.stderr)
-        en = {t: [] for t in TABLE_COLUMNS}
+        jn = jin10_calendar.fetch_all(target_date)
+    except Exception as e:
+        print(f"[calendar.runner] jin10 skipped: {e}", file=sys.stderr)
+        jn = {t: [] for t in TABLE_COLUMNS}
 
     # IR crawler writes directly to corporate_events via _event_store shim.
     # Returns {} — do not merge into `merged`; runner's _upsert is a no-op for IR.
@@ -85,7 +99,12 @@ def run(target_date: datetime) -> dict[str, int]:
 
     merged: dict[str, list[dict]] = {tbl: [] for tbl in TABLE_COLUMNS}
     for tbl in TABLE_COLUMNS:
-        merged[tbl] = cn.get(tbl, []) + en.get(tbl, [])
+        merged[tbl] = cn.get(tbl, []) + en.get(tbl, []) + jn.get(tbl, [])
+
+    # ponytail: fail loudly if the macro table came back empty from every source —
+    # akshare/finnhub both used to fail silently into +0 rows for weeks.
+    if not merged["economic_events"]:
+        print("[calendar.runner] WARNING: economic_events empty from ALL sources", file=sys.stderr)
 
     counts: dict[str, int] = {}
     conn = _connect_compat()
